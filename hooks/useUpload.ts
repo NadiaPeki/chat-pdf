@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { storage } from '@/firebase';
-import { ref, uploadBytesResumable } from 'firebase/storage';
+import { db, storage } from '@/firebase';
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { doc, setDoc } from 'firebase/firestore';
 
 export enum StatusText {
   UPLOADING = 'Uploading file...',
@@ -43,11 +44,24 @@ function useUpload() {
       (error) => {
         console.error('Error uploading file', error);
       },
-      () => {
+      async () => {
         setStatus(StatusText.UPLOADED);
-        const downloadUrl 
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        setStatus(StatusText.SAVING);
+        await setDoc(doc(db, 'users', user.id, 'files', fileIdToUploadTo), {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          downloadUrl: downloadUrl,
+          ref: uploadTask.snapshot.ref.fullPath,
+          createdAt: new Date(),
+        });
+        setStatus(StatusText.GENERATING);
+        // Generate AI Embeddings...
+        setFileId(fileIdToUploadTo);
       },
     );
   };
+  return { progress, status, fileId, handleUpload };
 }
 export default useUpload;
