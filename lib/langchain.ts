@@ -21,6 +21,31 @@ const model = new ChatOpenAI({
 
 export const indexName = 'papafam';
 
+async function fetchMessagesFromDB(docId: string) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error('User not found');
+  }
+  console.log('--- Fetching chat history from the firestore database... ---');
+  //Get the last 6 messages from the chat history
+  const chats = await adminDb
+    .collection(`users`)
+    .doc(userId)
+    .collection('files')
+    .doc(docId)
+    .collection('chat')
+    .orderBy('createdAt', 'desc')
+    // .limit(LIMIT)
+    .get();
+
+  const chatHistory = chats.docs.map((doc) => {
+    return doc.data().role === 'human'
+      ? new HumanMessage(doc.data().message)
+      : new AIMessage(doc.data().message);
+  });
+}
+
 export async function generateDocs(docId: string) {
   const { userId } = await auth();
 
@@ -109,3 +134,20 @@ export async function generateEmbeddingsInPineconeVectorStore(docId: string) {
     return pineconeVectorStore;
   }
 }
+
+const generateLangchainCompletion = async (docId: string, question: string) => {
+  let pineconeVectorStore;
+
+  pineconeVectorStore = await generateEmbeddingsInPineconeVectorStore(docId);
+
+  if (!pineconeVectorStore) {
+    throw new Error('Pinecone vector store not found');
+  }
+  // Create a retriever to search through the vector store
+  console.log('--- Creating a retriever... ---');
+
+  const retriever = pineconeVectorStore.asRetriever();
+
+  // Fetch the chat history from the database
+  const chatHistory = await fetchMessagesFromDB(docId);
+};
