@@ -16,15 +16,18 @@ const FileUploader = () => {
     }
   }, [fileId, router]);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    // Do something with the files
-    const file = acceptedFiles[0];
-    if (file) {
-      await handleUpload(file);
-    } else {
-      // do nothing...
-    }
-  }, []);
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      // Do something with the files
+      const file = acceptedFiles[0];
+      if (file) {
+        await handleUpload(file);
+      } else {
+        // do nothing...
+      }
+    },
+    [handleUpload],
+  );
 
   const statusIcons: {
     [key in StatusText]: JSX.Element;

@@ -3,9 +3,9 @@
 import { FormEvent, useEffect, useRef, useState, useTransition } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { askQuestion, Message } from '@/actions/askQuestion';
+import { askQuestion } from '@/actions/askQuestion';
 import { Loader2Icon } from 'lucide-react';
-// import ChatMessage from './ChatMessage';
+import ChatMessage from './ChatMessage';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import { useUser } from '@clerk/nextjs';
 import { collection, orderBy, query } from 'firebase/firestore';
@@ -24,6 +24,7 @@ function Chat({ id }: { id: string }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isPending, startTransition] = useTransition();
+  const bottomOfChatRef = useRef<HTMLDivElement>(null);
 
   const [snapshot, loading, error] = useCollection(
     user &&
@@ -31,10 +32,34 @@ function Chat({ id }: { id: string }) {
   );
 
   useEffect(() => {
+    bottomOfChatRef.current?.scrollIntoView({
+      behavior: 'smooth',
+    });
+  }, [messages]);
+
+  useEffect(() => {
     if (!snapshot) return;
     console.log('Updated snapshot', snapshot.docs);
     // get second last message to check if the AI is thinking
-    // const lastMessage = messages.pop();
+    const lastMessage = messages.pop();
+
+    if (lastMessage?.role === 'ai' && lastMessage.message === 'Thinking...') {
+      // return as this is a dummy placeholder message
+      return;
+    }
+
+    const newMessages = snapshot.docs.map((doc) => {
+      const { role, message, createdAt } = doc.data();
+
+      return {
+        id: doc.id,
+        role,
+        message,
+        createdAt: createdAt.toDate(),
+      };
+    });
+    setMessages(newMessages);
+    // Ignore messages dependancy warning here... we don't want an infinite loop
   }, [snapshot]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -62,7 +87,7 @@ function Chat({ id }: { id: string }) {
       const { success, message } = await askQuestion(id, q);
 
       if (!success) {
-// toast...
+        // toast...
 
         // toast({
         //   variant: 'destructive',
@@ -86,7 +111,31 @@ function Chat({ id }: { id: string }) {
   return (
     <div className="flex flex-col h-full overflow-scroll">
       {/**Chat contents */}
-      <div className="flex-1 w-full">{/* chat messages...*/}</div>
+      <div className="flex-1 w-full">
+        {/* chat messages...*/}
+        {loading ? (
+          <div className="flex items-center justify-center">
+            <Loader2Icon className="animate-spin h-20 w-20 text-violet-600 mt-20" />
+          </div>
+        ) : (
+          <div className='p-5'>
+            {messages.length === 0 && (
+              <ChatMessage
+                key={'placeholder'}
+                message={{
+                  role: 'ai',
+                  message: 'Ask me anything about the document!',
+                  createdAt: new Date(),
+                }}
+              />
+            )}
+            {messages.map((message, index) => (
+              <ChatMessage key={index} message={message} />
+            ))}
+            <div ref={bottomOfChatRef} />
+          </div>
+        )}
+      </div>
       <form onSubmit={handleSubmit} className="flex sticky bottom-0 space-x-2 p-5 bg-indigo-600/75">
         <Input
           placeholder="Ask a Question..."
