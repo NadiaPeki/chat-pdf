@@ -26,6 +26,7 @@ const PricingPage = () => {
     const userDetails: UserDetails = {
       email: user.primaryEmailAddress?.toString()!,
       name: user.fullName!,
+      
     };
 
     startTransition(async () => {
@@ -130,3 +131,5 @@ const PricingPage = () => {
   );
 };
 export default PricingPage;
+
+
