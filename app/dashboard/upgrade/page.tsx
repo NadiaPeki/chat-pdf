@@ -20,13 +20,14 @@ const PricingPage = () => {
   const { hasActiveMembership, loading } = useSubscription();
   const [isPending, startTransition] = useTransition();
 
+  console.log(hasActiveMembership);
+
   const handleUpgrade = () => {
     if (!user) return;
 
     const userDetails: UserDetails = {
       email: user.primaryEmailAddress?.toString()!,
       name: user.fullName!,
-      
     };
 
     startTransition(async () => {
@@ -37,7 +38,7 @@ const PricingPage = () => {
       }
       const sessionId = await createCheckoutSession(userDetails);
       await stripe?.redirectToCheckout({
-        sessionId
+        sessionId,
       });
     });
   };
@@ -131,5 +132,3 @@ const PricingPage = () => {
   );
 };
 export default PricingPage;
-
-

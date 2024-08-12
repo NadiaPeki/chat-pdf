@@ -6,7 +6,6 @@ import stripe from '@/lib/stripe';
 import getBaseUrl from '@/lib/getBaseUrl';
 
 export async function createCheckoutSession(userDetails: UserDetails) {
-  auth().protect();
   const { userId } = await auth();
 
   if (!userId) {
@@ -50,3 +49,5 @@ export async function createCheckoutSession(userDetails: UserDetails) {
   });
   return session.id;
 }
+
+
