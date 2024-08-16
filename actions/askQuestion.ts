@@ -6,9 +6,13 @@ import { auth } from '@clerk/nextjs/server';
 import { generateLangchainCompletion } from '@/lib/langchain';
 import { FREE_LIMIT, PRO_LIMIT } from '@/hooks/useSubscription';
 
+// const PRO_LIMIT = 20;
+// const FREE_LIMIT = 2;
+
 export async function askQuestion(id: string, question: string) {
   auth().protect();
   const { userId } = await auth();
+  console.log('DEBUG userId:', userId);
 
   const chatRef = adminDb
     .collection('users')
@@ -22,28 +26,32 @@ export async function askQuestion(id: string, question: string) {
   const userMessages = chatSnapshot.docs.filter((doc) => doc.data().role === 'human');
 
   // Check membership limits for messages in a document
-  const userRef = await adminDb.collection('users').doc(userId!).get();
+  const userRef = await adminDb.collection('users').doc(userId!)
+  const userDoc = await userRef.get();
 
+  console.log('DEBUG 2', userDoc.exists);
 
-// check if user is on FREE plan and has asked more than the FREE number of questions
-if (!userRef.data()?.hasActiveMembership) {
-  if (userMessages.length >= FREE_LIMIT) {
-    return {
-      success: false,
-      message: `You'll need to upgrade to PRO to ask more than ${FREE_LIMIT} questions! :(`
-    }
-  }
-}
+  // check if user is on FREE plan and has asked more than the FREE number of questions
+  // if (!userRef.data()?.hasActiveMembership) {
+  //   console.log('Debug 3', userMessages.length, FREE_LIMIT);
+  //   if (userMessages.length >= FREE_LIMIT) {
+  //     return {
+  //       success: false,
+  //       message: `You'll need to upgrade to PRO to ask more than ${FREE_LIMIT} questions! :(`,
+  //     };
+  //   }
+  // }
 
-// check if user is on PRO plan and has asked more than 100 questions
-if (userRef.data()?.hasActiveMembership) {
-  if (userMessages.length >= PRO_LIMIT) {
-    return {
-      success: false,
-      message: `You've reached the PRO limit of ${PRO_LIMIT} questions per document! :(`
-    }
-  }
-}
+  // check if user is on PRO plan and has asked more than 100 questions
+  // if (userRef.data()?.hasActiveMembership) {
+  //   console.log('Debug 4', userMessages.length, PRO_LIMIT);
+  //   if (userMessages.length >= PRO_LIMIT) {
+  //     return {
+  //       success: false,
+  //       message: `You've reached the PRO limit of ${PRO_LIMIT} questions per document! :(`,
+  //     };
+  //   }
+  // }
 
   const userMessage: Message = {
     role: 'human',
